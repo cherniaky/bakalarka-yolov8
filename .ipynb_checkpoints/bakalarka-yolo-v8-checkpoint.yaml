@@ -1,0 +1,6 @@
+path: ../data
+train: train(region)
+val: val(region)
+
+nc: 1
+names: ['coronal hole']

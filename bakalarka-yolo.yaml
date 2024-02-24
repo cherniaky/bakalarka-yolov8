@@ -1,7 +1,0 @@
-path: ../data
-train: train(region_growth)
-val: val(region_growth)
-test: test(region_growth)
-
-nc: 1
-names: ['coronal hole']

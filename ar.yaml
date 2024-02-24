@@ -1,0 +1,7 @@
+path: ../data
+train: ar-train
+val: ar-val
+test: ar-test
+
+nc: 1
+names: ['active region']

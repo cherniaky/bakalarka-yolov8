@@ -1,0 +1,7 @@
+path: ../data
+train: ch-train(SOHO)
+val: ch-val(SOHO)
+test: ch-test(SOHO)
+
+nc: 1
+names: ['coronal hole']

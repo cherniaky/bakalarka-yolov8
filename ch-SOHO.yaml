@@ -1,4 +1,4 @@
-path: ../data
+path: /dev/bakalarka-yolo/data
 train: ch-train(SOHO)
 val: ch-val(SOHO)
 test: ch-test(SOHO)

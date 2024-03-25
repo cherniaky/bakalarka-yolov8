@@ -1,0 +1,7 @@
+path: /dev/bakalarka-yolo/data
+train: ar-train(SOHO)
+val: ar-val(SOHO)
+test: ar-test(SOHO)
+
+nc: 1
+names: ['active region']

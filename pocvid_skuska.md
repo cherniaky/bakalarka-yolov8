@@ -1295,4 +1295,904 @@ Kľúčové body na zapamätanie:
 4. Veľkosť okna pri adaptívnom prahovaní ovplyvňuje výsledok
 5. Pre dokumenty je často potrebné kombinovať viacero techník
 
-9. OTAZKA: 
+9. OTAZKA: Farba a farebné modely (aditívne a subtraktívne), porovnajte RGB a Lab model z hľadiska segmentácie objektov podľa farby, vysvetlite segmentáciu podľa farby s použitím Lab farebného modelu, možnosti vymedzenia oblastí zodpovedajúcich konkrétnej farbe. Segmentácia štiepením a spájaním oblastí. Ako postupujeme pri jednotlivých metódach, ako je ich možné kombinovať. Čo je to “kritérium homogenity”, uveďte príklad. Ako funguje pyramid linking?
+
+### **Farba a farebné modely (aditívne a subtraktívne)**
+
+**Aditívne farebné modely (RGB):**
+- Používajú sa tam, kde je zdrojom farby svetlo, napr. v monitoroch, televíziách, projektoroch.
+- Základné farby: **červená (Red), zelená (Green), modrá (Blue)**.
+- Pri ich kombinácii vznikajú ostatné farby: 
+  - Červená + zelená = žltá
+  - Červená + modrá = purpurová
+  - Zelená + modrá = tyrkysová
+  - Všetky tri dohromady = biela.
+- Model je vhodný na zobrazenie farieb na zariadeniach, ktoré vyžadujú emisiu svetla.
+
+**Subtraktívne farebné modely (CMY/CMYK):**
+- Používajú sa pri tlači a v prípade pigmentov, kde farba vzniká absorbovaním (subtrakciou) svetla.
+- Základné farby: **azúrová (Cyan), purpurová (Magenta), žltá (Yellow)**. 
+- Pri tlači sa pridáva čierna (Key/Black – CMYK), aby bola čierna farba presnejšia.
+- Kombinácia všetkých troch pigmentov teoreticky vytvára čiernu, no v praxi je to tmavohnedá.
+
+---
+
+### **Porovnanie RGB a Lab modelu z hľadiska segmentácie objektov podľa farby**
+
+1. **RGB farebný model:**
+   - Je vhodný na zobrazovanie farieb, ale menej vhodný na segmentáciu, pretože je závislý od osvetlenia.
+   - Farby v RGB nie sú lineárne príbuzné vnímaniu farieb človekom – malé zmeny hodnôt môžu mať nepredvídateľný vizuálny efekt.
+   - Napríklad tieň alebo zmena intenzity osvetlenia ovplyvňuje hodnoty R, G a B, čo komplikuje segmentáciu.
+
+2. **Lab farebný model:**
+   - Lab model je percepčne založený a nezávisí od osvetlenia (pokiaľ je normalizovaný).
+   - Obsahuje:
+     - **L** (Lightness) – jasová zložka.
+     - **a** (Green to Magenta) – farebný kanál.
+     - **b** (Blue to Yellow) – farebný kanál.
+   - Lepšie oddeľuje farebné informácie od intenzity osvetlenia, čo uľahčuje segmentáciu objektov na základe farby, najmä v nehomogénne osvetlených scénach.
+
+---
+
+### **Segmentácia podľa farby s použitím Lab farebného modelu**
+
+1. **Postup:**
+   - Prevedieme obrázok z RGB modelu do Lab modelu.
+   - Použijeme len farebné kanály **a** a **b**, čím odstránime vplyv osvetlenia.
+   - Definujeme hranice pre farebné hodnoty **a** a **b**, ktoré odpovedajú farbe záujmu (napr. červená farba má hodnoty a > 20, b < 20).
+   - Na základe týchto hraníc identifikujeme pixely zodpovedajúce farbe záujmu.
+
+2. **Príklad:**
+   - Ak chceme nájsť červené oblasti:
+     - Pre každý pixel vypočítame hodnoty **a** a **b**.
+     - Ak hodnoty spadajú do rozsahu charakteristického pre červenú farbu, pixel označíme ako patriaci k červenej oblasti.
+
+3. **Vymedzenie oblastí podľa farby:**
+   - Používajú sa prahovacie techniky (thresholding).
+   - Napr. pixely s hodnotami **a > X1** a **b < X2** označíme ako „červené“.
+   - Výstupom je binárna maska, kde 1 reprezentuje oblasť záujmu.
+
+---
+
+### **Segmentácia štiepením a spájaním oblastí**
+
+1. **Štiepenie (Splitting):**
+   - Rozdeľujeme obrázok na menšie homogénne časti.
+   - Používa sa, ak veľké oblasti nie sú homogénne.
+   - Postup:
+     - Začneme s celou oblasťou.
+     - Skontrolujeme, či spĺňa kritérium homogenity.
+     - Ak nie, oblasť rozdelíme (napr. na štvrtiny).
+     - Opakujeme, kým všetky oblasti nie sú homogénne.
+
+2. **Spájanie (Merging):**
+   - Spojujeme malé oblasti do väčších, ak spĺňajú kritérium homogenity.
+   - Používa sa po štiepení na optimalizáciu segmentácie.
+   - Postup:
+     - Skontrolujeme susedné oblasti.
+     - Ak majú podobné hodnoty (napr. farebné alebo textúrne), spojíme ich do jednej oblasti.
+
+3. **Kombinácia metód:**
+   - **Štiepenie** použijeme na vytvorenie základných homogénnych oblastí.
+   - **Spájanie** následne spojí susedné homogénne oblasti, čím minimalizuje prebytočné segmenty.
+
+---
+
+### **Kritérium homogenity**
+
+- **Definícia:** Podmienka, ktorá určuje, či je oblasť dostatočne jednotná na to, aby bola považovaná za homogénnu.
+- Môže byť založené na:
+  - Hodnotách farby (napr. variácia vo farebných kanáloch < prah).
+  - Textúre (napr. rovnaká frekvencia pixelov v oblasti).
+  - Jasnosti (napr. priemerná intenzita v oblasti ± odchýlka).
+- **Príklad:** Oblasť je homogénna, ak variácia hodnoty „a“ a „b“ v Lab modeli je menšia ako 5.
+
+---
+
+### **Pyramid Linking**
+
+- **Definícia:** Metóda, ktorá spája informácie z viacerých úrovní rozlíšenia obrázka.
+- Postup:
+  - Vytvorí sa pyramída obrázkov:
+    - Najvyššia úroveň má najnižšie rozlíšenie (downsampling).
+    - Najnižšia úroveň má pôvodné rozlíšenie.
+  - Na každej úrovni sa vykoná segmentácia.
+  - Výsledky z vyšších úrovní sa použijú na usmernenie segmentácie na nižších úrovniach.
+- **Príklad:** 
+  - Pri vyhľadávaní veľkých objektov sa použijú vyššie úrovne (nízke rozlíšenie).
+  - Pri detailnom vyhľadávaní menších častí sa použijú nižšie úrovne (vysoké rozlíšenie).
+
+---
+
+Tento prehľad obsahuje teoretické základy aj praktické príklady, ktoré ti pomôžu pri skúške. Ak potrebuješ prepočítať konkrétny algoritmus alebo príklady kódu, stačí dať vedieť. 😊
+
+10. OTAZKA: Označovanie spojených komponentov, uveďte príklad algoritmu. Morfologické operácie, dilatácia a erózia (štruktúrny element, kritériá hit a fit), otvorenie a uzavretie, transformácia hit-or-miss, vzdialenostná transformácia, skeletonizácia, princíp segmentácie pomocou rozvodia, šedotónová erózia a dilatácia, oddelenie pozadia pomocou šedotónovej erózie
+
+### **Označovanie spojených komponentov**
+
+Označovanie spojených komponentov (Connected Component Labeling, CCL) je metóda na identifikáciu a označovanie súvislých oblastí v binárnom obraze. Používa sa v analýze obrazov na segmentáciu a identifikáciu objektov.
+
+1. **Algoritmus na označovanie spojených komponentov (2-pass algoritmus):**
+   - Predpokladáme binárny obraz, kde 1 označuje pixely patriace k objektu a 0 pozadie.
+   - Používa 4-susednosť alebo 8-susednosť.
+
+   **Kroky:**
+   1. **Priechod 1:**
+      - Prechádzame obraz pixel po pixeli.
+      - Ak je pixel súčasťou objektu (hodnota 1):
+        - Skontrolujeme jeho susedov (v závislosti od susednosti, napr. 4-susednosť kontroluje horného a ľavého suseda).
+        - Ak majú susedia už priradené značky, pixel dostane najmenšiu z týchto značiek.
+        - Ak nemá žiadny sused značku, pixel dostane novú značku.
+        - Zaznamenávame ekvivalencie medzi značkami (ak rôzni susedia majú rôzne značky).
+   2. **Priechod 2:**
+      - Všetky pixely s ekvivalentnými značkami sa aktualizujú na rovnakú konečnú značku.
+   3. **Výstup:**
+      - Každá súvislá oblasť v obraze má jedinečnú značku.
+
+   **Príklad:**
+   Binárny obraz:
+   ```
+   0 1 1 0
+   1 1 0 0
+   0 0 1 1
+   0 1 1 0
+   ```
+   Po aplikovaní algoritmu (4-susednosť):
+   ```
+   0 1 1 0
+   1 1 0 0
+   0 0 2 2
+   0 2 2 0
+   ```
+
+---
+
+### **Morfologické operácie**
+
+Morfologické operácie sa používajú na spracovanie binárnych alebo šedotónových obrazov. Využívajú **štruktúrny element (SE)**, ktorý definuje spôsob interakcie s obrazom.
+
+#### **1. Dilatácia:**
+- Rozširuje objekty v obraze, pridáva pixely k hranám objektu.
+- **Hit kritérium:** Štruktúrny element sa musí aspoň čiastočne prekrývať s objektom.
+- **Vzorec (binárne obrazy):**  
+  \( A \oplus B = \{ z \mid (B_z \cap A) \neq \emptyset \} \)
+
+#### **2. Erózia:**
+- Zmenšuje objekty v obraze, odstraňuje pixely na hranách objektu.
+- **Fit kritérium:** Štruktúrny element sa musí úplne vojsť do objektu.
+- **Vzorec (binárne obrazy):**  
+  \( A \ominus B = \{ z \mid B_z \subseteq A \} \)
+
+#### **3. Otvorenie (Opening):**
+- Sekvencia erózie a dilatácie.
+- Používa sa na odstránenie šumu a malých objektov.
+- \( A \circ B = (A \ominus B) \oplus B \)
+
+#### **4. Uzavretie (Closing):**
+- Sekvencia dilatácie a erózie.
+- Používa sa na vyplnenie medzier a spájanie objektov.
+- \( A \bullet B = (A \oplus B) \ominus B \)
+
+---
+
+### **Transformácia hit-or-miss**
+- Identifikuje konkrétne tvarové vzory v obraze.
+- Využíva **štruktúrny element** \( B \) pozostávajúci z dvoch častí:
+  - Oblasť, ktorá musí obsahovať objekt.
+  - Oblasť, ktorá musí byť pozadím.
+- **Vzorec:**  
+  \( A \otimes B = (A \ominus B_1) \cap (A^c \ominus B_2) \), kde \( B_1 \) je objektová a \( B_2 \) pozadová časť SE.
+
+---
+
+### **Vzdialenostná transformácia**
+- Pre každý pixel v obraze vypočíta vzdialenosť k najbližšiemu pixelu pozadia.
+- Používa sa na:
+  - Návrh štruktúr.
+  - Skeletonizáciu.
+  - Segmentáciu pomocou rozvodia.
+- Príklad metriky: **Euklidovská vzdialenosť**, **Manhattanská vzdialenosť**.
+
+---
+
+### **Skeletonizácia**
+- Zredukuje objekty na ich kostru (jednobunkovú hrúbku), pričom zachová ich topológiu.
+- Použitie: Rekonštrukcia tvarov, analýza tvarových vlastností.
+
+---
+
+### **Princíp segmentácie pomocou rozvodia**
+- Modeluje obraz ako topografickú mapu:
+  - Jas predstavuje výšku.
+- Simuluje zaplavenie:
+  - Voda tečie z minima smerom k maximám.
+  - Oblasti, ktoré sa zaplavujú z rôznych minim, sa oddelia „hradnými múrmi“.
+- Používa sa na segmentáciu objektov na základe hraničných hodnôt.
+
+---
+
+### **Šedotónová erózia a dilatácia**
+1. **Šedotónová dilatácia:**
+   - Nahradí pixel maximálnou hodnotou v jeho okolí definovanom štruktúrnym elementom.
+2. **Šedotónová erózia:**
+   - Nahradí pixel minimálnou hodnotou v jeho okolí definovanom štruktúrnym elementom.
+
+---
+
+### **Oddelenie pozadia pomocou šedotónovej erózie**
+- Použitie: Identifikácia objektov na pozadí.
+- Postup:
+  - Aplikujeme šedotónovú eróziu na obraz.
+  - Pozadie sa „odstráni“, pretože sa znížia hodnoty intenzity.
+
+---
+
+Tento obsah obsahuje kľúčové koncepty, vzorce a príklady potrebné na pochopenie témy a prípravu na skúšku. Ak potrebuješ viac detailov alebo kódové implementácie, daj vedieť! 😊
+
+11 OTAZKA: Rozpoznávanie objektov, jednoduché skalárne deskriptory oblastí, klasifikátory, pravidlový klasifikátor, diskriminatívne a generatívne metódy rozpoznávania, Bayesovo pravidlo a naivný Bayesov klasifikátor
+
+Pripravím pre vás komplexnú odpoveď, ktorá vám pomôže pripraviť sa na skúšku. Rozoberiem každú časť podrobne:
+
+1. Rozpoznávanie objektov:
+- Je to proces určovania, či obrazové dáta obsahujú špecifický objekt, vlastnosť alebo aktivitu
+- Delí sa na:
+  - Objektové rozpoznávanie (klasifikácia) - rozpoznávanie jedného alebo viacerých naučených objektov vrátane ich 2D pozície v obraze alebo 3D pózy
+  - Identifikácia - rozpoznávanie konkrétnej inštancie objektu (napr. konkrétna tvár osoby, odtlačok prsta)
+  - Detekcia - skenovanie obrazu pre špecifické podmienky (napr. abnormálne bunky v medicínskych snímkach)
+
+2. Jednoduché skalárne deskriptory oblastí:
+- Veľkosť/Plocha (Area):
+  - Počet pixelov vnútri oblasti
+  - Pri polygóne sa dá vypočítať zo súradníc vrcholov
+
+- Obvod (Perimeter):
+  - Súčet Euklidovských vzdialeností obrysových bodov pozdĺž kontúry
+
+- Okrúhlosť (Roundness):
+  - Vzorec: (4 × π × plocha) / obvod²
+  - Hodnoty v intervale <0,1>, kde 1.0 predstavuje dokonalý kruh
+
+- Feretov priemer:
+  - Priemer kruhu s rovnakou plochou ako sledovaný objekt
+
+- Dĺžka hlavnej osi:
+  - Najdlhšia úsečka medzi dvoma ľubovoľnými bodmi obvodu
+
+- Eulerovo číslo:
+  - E = S - N (S = počet súvislých objektov, N = počet dier)
+  - Popisuje topológiu objektu
+
+3. Pravidlový klasifikátor:
+Príklad jednoduchých pravidiel:
+```
+Ak (Okrúhlosť > 0.9 AND Plocha > 50) potom Objekt = Jablko
+inak Ak (Okrúhlosť > 0.7 AND Plocha > 50) potom Objekt = Hruška
+inak Ak (Okrúhlosť < 0.7 AND Plocha < 30) potom Objekt = Slivka
+inak Objekt = Neznámy
+```
+
+4. Diskriminatívne metódy rozpoznávania:
+- Pracujú v priestore príznakov (N-rozmernom)
+- Vytvárajú model určujúci hranicu medzi triedami (diskriminačná funkcia)
+- Potrebujú príklady aspoň dvoch tried
+- Príklady metód:
+  - Umelé neurónové siete (ANN)
+  - Support Vector Machines (SVM)
+  - Rozhodovacie stromy
+  - Lineárna regresia
+
+5. Generatívne metódy rozpoznávania:
+- Model vymedzuje hranice jednotlivých tried
+- Dokážu generovať nové príklady danej triedy
+- Stačia príklady jednej triedy
+- Príklad: Naivný Bayesov klasifikátor
+
+6. Bayesovo pravidlo:
+- P(A|B) = P(B|A) × P(A) / P(B)
+- Praktický príklad z prednášky (drogový test):
+  - Citlivosť testu: 90%
+  - Špecifickosť: 95%
+  - Prevalencia: 5%
+  - Výpočet pravdepodobnosti užívania drog pri pozitívnom teste:
+    P(beriem|pozit. test) = 0.9 × 0.05 / (0.05 × 0.9 + 0.05 × 0.95) = 0.486 (48.6%)
+
+7. Naivný Bayesov klasifikátor:
+- Predpoklady:
+  - Príznaky sú navzájom nezávislé
+  - Hodnoty príznakov majú normálne rozdelenie pravdepodobnosti
+
+Príklad klasifikácie:
+- Máme dátovú množinu s príznakmi (napr. okrúhlosť) a triedami (jablko, hruška)
+- Pre nový objekt s okrúhlosťou 0.88:
+  1. Vypočítame P(jablko) a P(hruška) z trénovacích dát
+  2. Aproximujeme rozdelenie príznakov pomocou Gaussových kriviek
+  3. Vypočítame P(okrúhlosť = 0.88|jablko) a P(okrúhlosť = 0.88|hruška)
+  4. Pomocou Bayesovho pravidla určíme pravdepodobnosti tried
+  5. Klasifikujeme podľa vyššej pravdepodobnosti
+
+Dôležité poznámky pre skúšku:
+- Vedieť vysvetliť rozdiely medzi diskriminatívnymi a generatívnymi metódami
+- Poznať základné skalárne deskriptory a vedieť ich vypočítať
+- Rozumieť Bayesovmu pravidlu a vedieť ho aplikovať na praktické príklady
+- Chápať princíp naivného Bayesovho klasifikátora a jeho predpoklady
+- Vedieť navrhnúť jednoduchý pravidlový klasifikátor pre konkrétny problém
+
+12 OTAZKA : Základný princíp fungovania metódy Violu-Jonesa, Haarova črta, spájanie výstupov viacerých Haarových čŕt, príklad pre detekciu tvárí. Základný popis fungovania SIFT, čo sú to črty - kľúčové body, deskriptor, škálová a rotačná invariancia, náčrt ako funguje klasifikácia objektu.
+
+Pripravím komplexné vysvetlenie týchto dôležitých metód počítačového videnia:
+
+1. METÓDA VIOLA-JONES
+Základný princíp:
+- Framework navrhnutý v roku 2001 pre detekciu objektov v reálnom čase
+- Primárne určený na detekciu tvárí, ale použiteľný aj pre iné objekty
+- Pozostáva zo 4 hlavných fáz:
+
+A) Haarove črty (Haar Features):
+- Sú to jednoduché obdĺžnikové filtre pozostávajúce z čiernych a bielych oblastí
+- Hodnota črty sa počíta ako rozdiel súm pixelov pod bielymi a čiernymi oblasťami
+- Príklady Haarových čŕt pre detekciu tvárí:
+  - Horizontálna črta pre detekciu očí (tmavšia oblasť medzi svetlejšími)
+  - Vertikálna črta pre detekciu nosa
+  - Diagonálne črty pre detekciu líc
+
+B) Integrálny obraz:
+- Efektívny spôsob výpočtu súm pixelov v obdĺžnikových oblastiach
+- Pre každý bod (x,y) obsahuje sumu všetkých pixelov nad a naľavo
+- Umožňuje rýchly výpočet Haarových čŕt pomocou 4 prístupov do pamäte
+
+C) AdaBoost tréning:
+- Kombinuje mnoho "slabých" klasifikátorov do jedného silného
+- Každý slabý klasifikátor používa jednu Haarovu črtu
+- Váži klasifikátory podľa ich úspešnosti
+- Výsledný silný klasifikátor je váženou sumou slabých klasifikátorov
+
+D) Kaskádové klasifikátory:
+- Usporiadanie klasifikátorov do kaskády (postupnosti)
+- Začína jednoduchšími klasifikátormi
+- Ak región neprejde cez aktuálny stupeň, je okamžite zamietnutý
+- Ak prejde, pokračuje na ďalší stupeň
+- Zrýchľuje detekciu tým, že rýchlo eliminuje oblasti bez tváre
+
+2. SIFT (Scale Invariant Feature Transform)
+Základný princíp:
+- Vyvinutý Davidom Lowem v 1999
+- Detekuje a popisuje lokálne črty v obrazoch
+- Invariantný voči škále, rotácii a čiastočne voči zmene osvetlenia
+
+A) Kľúčové body (Keypoints):
+- Významné body v obraze (rohy, hrany, výrazné textúry)
+- Detekcia v rôznych škálach pomocou Difference of Gaussian (DoG)
+- Výber stabilných bodov, ktoré sa zachovávajú pri transformáciách
+
+B) Deskriptor:
+- 128-dimenzionálny vektor popisujúci okolie kľúčového bodu
+- Založený na histogramoch gradientov
+- Rozdelenie okolia na 4×4 oblasti
+- V každej oblasti 8 smerových histogramov
+
+C) Škálová invariancia:
+- Dosiahnutá vytvorením scale-space pyramídy
+- Detekcia kľúčových bodov vo všetkých škálach
+- Automatický výber charakteristickej škály pre každý bod
+
+D) Rotačná invariancia:
+- Výpočet dominantnej orientácie pre každý kľúčový bod
+- Deskriptor je normalizovaný vzhľadom na túto orientáciu
+
+E) Klasifikácia objektu pomocou SIFT:
+1. Detekcia kľúčových bodov v trénovacej aj testovacej snímke
+2. Výpočet deskriptorov pre všetky kľúčové body
+3. Párovanie zodpovedajúcich bodov medzi snímkami
+4. Použitie zovšeobecnenej Houghovej transformácie na potvrdenie zhody
+5. Výpočet afinných transformácií objektu
+
+Hlavné výhody SIFT:
+- Robustnosť voči zmene mierky a rotácii
+- Čiastočná invariancia voči zmene osvetlenia
+- Rozpoznávanie čiastočne prekrytých objektov
+- Vysoká presnosť párovania čŕt
+
+Možné aplikácie:
+- Rozpoznávanie objektov
+- Sledovanie objektov vo videu
+- Panoramatické spájanie snímok
+- 3D rekonštrukcia scény
+- Vizuálna lokalizácia robotov
+
+13 OTAZKA: Houghova transformácia, kompletný popis metódy pre vyhľadávanie priamok, popis modifikácie pre detekciu kružníc, praktické použitie
+Pripravím komplexné vysvetlenie Houghovej transformácie:
+
+1. ZÁKLADNÝ PRINCÍP HOUGHOVEJ TRANSFORMÁCIE PRE PRIAMKY
+
+A) Transformácia z priestoru obrazu do parametrického priestoru:
+- Každý bod (x,y) v obraze môže ležať na nekonečne mnoho priamok
+- Priamka je definovaná rovnicou: y = mx + b
+- Alternatívna parametrizácia (používanejšia): ρ = x·cos(θ) + y·sin(θ)
+  kde: ρ - kolmá vzdialenosť priamky od počiatku
+       θ - uhol medzi kolmicou na priamku a osou x
+
+B) Postup detekcie:
+1. Vytvorenie akumulátora (2D pole) pre parametre (ρ,θ)
+2. Pre každý hranový bod (x,y) v obraze:
+   - Pre každý uhol θ vypočítať ρ
+   - Inkrementovať hodnotu v akumulátore na pozícii (ρ,θ)
+3. Hľadanie lokálnych maxím v akumulátore
+   - Maxima reprezentujú najpravdepodobnejšie priamky v obraze
+
+Príklad implementácie pre priamky:
+```python
+def hough_transform_lines(edge_image):
+    height, width = edge_image.shape
+    diagonal = np.ceil(np.sqrt(height**2 + width**2))
+    rhos = np.linspace(-diagonal, diagonal, 2*diagonal)
+    thetas = np.deg2rad(np.arange(-90, 90))
+    
+    # Vytvorenie akumulátora
+    accumulator = np.zeros((len(rhos), len(thetas)))
+    
+    # Súradnice hranových bodov
+    y_idxs, x_idxs = np.nonzero(edge_image)
+    
+    # Hlasovanie
+    for i in range(len(x_idxs)):
+        x = x_idxs[i]
+        y = y_idxs[i]
+        for theta_idx in range(len(thetas)):
+            theta = thetas[theta_idx]
+            rho = x*np.cos(theta) + y*np.sin(theta)
+            rho_idx = np.argmin(np.abs(rhos-rho))
+            accumulator[rho_idx, theta_idx] += 1
+            
+    return accumulator, rhos, thetas
+```
+
+2. MODIFIKÁCIA PRE DETEKCIU KRUŽNÍC
+
+A) Princíp:
+- Kružnica je definovaná troma parametrami: (x₀, y₀, r)
+  kde: (x₀,y₀) - stred kružnice
+       r - polomer
+- Parametrická rovnica: (x - x₀)² + (y - y₀)² = r²
+
+B) Postup detekcie:
+1. Vytvorenie 3D akumulátora pre parametre (x₀,y₀,r)
+2. Pre každý hranový bod (x,y):
+   - Pre každý možný polomer r:
+     - Vypočítať možné stredy kružnice
+     - Inkrementovať hodnoty v akumulátore
+3. Nájsť lokálne maximá v 3D akumulátore
+
+Príklad implementácie pre kružnice:
+```python
+def hough_transform_circles(edge_image, r_min, r_max):
+    height, width = edge_image.shape
+    accumulator = np.zeros((height, width, r_max - r_min))
+    
+    # Súradnice hranových bodov
+    y_idxs, x_idxs = np.nonzero(edge_image)
+    
+    # Hlasovanie
+    for i in range(len(x_idxs)):
+        x = x_idxs[i]
+        y = y_idxs[i]
+        for r in range(r_min, r_max):
+            for theta in np.linspace(0, 2*np.pi, 100):
+                x0 = x - r*np.cos(theta)
+                y0 = y - r*np.sin(theta)
+                if 0 <= x0 < width and 0 <= y0 < height:
+                    accumulator[int(y0), int(x0), r-r_min] += 1
+                    
+    return accumulator
+```
+
+3. PRAKTICKÉ POUŽITIE
+
+A) Predspracovanie obrazu:
+- Konverzia na odtiene šedej
+- Detekcia hrán (napr. Cannyho detektor)
+- Redukcia šumu (napr. Gaussov filter)
+
+B) Optimalizácie:
+- Obmedzenie rozsahu parametrov
+- Prahové hodnoty pre akumulátor
+- Lokálne maximum s okolím
+
+C) Aplikácie:
+- Detekcia čiar na cestách
+- Rozpoznávanie dopravných značiek
+- Detekcia objektov v priemysle
+- Analýza medicínskych snímok
+- Detekcia mincí a kruhových objektov
+
+D) Výhody:
+- Robustnosť voči šumu
+- Detekcia prerušovaných čiar
+- Možnosť detekcie viacerých objektov naraz
+
+E) Nevýhody:
+- Výpočtová náročnosť
+- Pamäťová náročnosť pre 3D akumulátor
+- Citlivosť na voľbu parametrov
+
+Príklad kompletného použitia:
+```python
+def detect_lines_and_circles(image):
+    # Predspracovanie
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 50, 150)
+    
+    # Detekcia priamok
+    lines_accumulator, rhos, thetas = hough_transform_lines(edges)
+    lines = find_peaks_in_accumulator(lines_accumulator, threshold=100)
+    
+    # Detekcia kružníc
+    circles_accumulator = hough_transform_circles(edges, r_min=20, r_max=100)
+    circles = find_peaks_in_3d_accumulator(circles_accumulator, threshold=50)
+    
+    return lines, circles
+```
+
+Tieto poznatky sú dôležité pre skúšku a praktické použitie v počítačovom videní. Odporúčam porozumieť:
+- Princípu transformácie priestorov
+- Rozdielu medzi detekciou priamok a kružníc
+- Optimalizáciám a praktickým aspektom implementácie
+- Možnostiam využitia v reálnych aplikáciách
+
+14 OTAZKA: Dôvody analýzy pohybu v obraze, predpoklady urýchľujúce analýzu pohybu, diferenciálna metóda, kumulatívny diferenčný obraz, modelovanie pozadia, motion field a optický tok (v čom je rozdiel), optický tok pomocou sledovania čŕt.
+
+Na základe pridanej prednášky pripravím aktualizovanú a presnú odpoveď:
+
+1. DÔVODY ANALÝZY POHYBU V OBRAZE
+- Detekcia pohybu v bezpečnostných systémoch
+- Sledovanie objektov (object tracking)
+- Segmentácia pohybujúcich sa objektov
+- Rekonštrukcia 3D tvaru z pohybu (structure from motion)
+- Rozšírená realita (augmented reality)
+- Riadenie dopravy
+- Medicínske zobrazovanie
+- Kompresia videa
+
+2. PREDPOKLADY URÝCHĽUJÚCE ANALÝZU POHYBU
+- Jas každého pixelu je konštantný v čase (Brightness constancy)
+- Body v okolí pohybujúceho sa pixelu sa pohybujú podobne (Spatial coherence)
+- Scéna môže byť:
+  - Statická kamera, pohybujúce sa objekty
+  - Statická scéna, pohybujúca sa kamera
+  - Kombinácia oboch
+
+3. DIFERENCIÁLNA METÓDA
+- Založená na rozdieloch medzi po sebe nasledujúcimi snímkami
+- Detekuje zmeny na úrovni pixelov
+- Často používaná v aplikáciách dohľadu
+- Modifikácia: diferencia v hranovom obraze
+  - Kombinuje diferenčný obraz D(i,j) s obrazom hrán S(i,j)
+  - Hrany sa získajú hranových detektorom
+  - Použitie operácie AND pre premietnutie hrán
+
+4. KUMULATÍVNY DIFERENČNÝ OBRAZ (ADI - Accumulative Difference Image)
+- Akumuluje rozdiely medzi snímkami v čase
+- Zachytáva históriu pohybu v scéne
+- Užitočný pre analýzu dlhodobejších zmien
+
+5. MODELOVANIE POZADIA
+Algoritmus pomocou mediánového filtra:
+1. Inicializácia: Snímanie K snímkov, výpočet mediánovej intenzity pre každý pixel
+2. Snímanie ďalšieho obrazu a výpočet rozdielu s mediánovou hodnotou
+3. Prahovanie pre minimalizáciu šumu
+4. Filtrovanie a morfologické operácie pre odstránenie šumu
+5. Prepočítanie mediánu so zahrnutím nových pixelov pozadia
+6. Opakovanie procesu
+
+6. MOTION FIELD VS OPTICKÝ TOK
+
+Motion Field:
+- Ideálna reprezentácia 3D pohybu premietnutého do roviny kamery
+- Závisí na konkrétnych bodoch v priestore
+- Časová derivácia pozície všetkých bodov obrazu zodpovedajúcich fixným 3D bodom
+
+Optický tok (Optical Flow):
+- Založený na porovnávaní zmien jasu v krátkom časovom intervale
+- Závisí na zmene jasu v obraze
+- Podmienky:
+  - Konštantný jas pixelu v čase
+  - Podobný pohyb bodov v okolí
+
+Hlavný rozdiel:
+- Motion field závisí na skutočnom pohybe bodov
+- Optický tok závisí na zmenách jasu v obraze
+- Nemusia byť vždy totožné (napríklad pri rotujúcej guli s jednotnou textúrou)
+
+7. OPTICKÝ TOK POMOCOU SLEDOVANIA ČŔT
+- Založený na detekcii a sledovaní významných bodov v obraze
+- Proces:
+  1. Detekcia významných bodov (čŕt)
+  2. Sledovanie týchto bodov medzi snímkami
+  3. Výpočet vektorov pohybu
+- Využitie napríklad v:
+  - Medicínskom zobrazovaní (analýza pohybu orgánov)
+  - Sledovaní objektov
+  - Analýze pohybu v scéne
+
+Praktické aspekty:
+- Potreba riešiť problémy so šumom
+- Správne nastavenie parametrov detekcie
+- Optimalizácia výpočtovej náročnosti
+- Riešenie prekrývajúcich sa objektov
+
+15 OTAZKA Vysvetlenie princípu pasívnej stereovízie pre kamery s paralelnými optickými osami, block matching algoritmus pri výpočte disparity, metódy určovania podobnosti blokov pri block matchingu, vzťah disparity a vzdialenosti bodu od kamery. Čo je to epipolárne obmedzenie, epipolárne línie. Problémy pri hľadaní zhody (stereo-korešpondencie) pri pasívnej sterovízii. Príklady metód získania 3D obrazu: aktívna stereovízia, LiDAR, ToF kamera
+
+Na základe prednášky pripravím odpoveď zameranú na stereovíziu a 3D snímanie:
+
+1. ZÍSKANIE TRETIEHO ROZMERU (VŠEOBECNÉ METÓDY)
+- Kombinácia dvoch pohľadov (stereo videnie)
+- Sériové rezy kolmé na os Z
+- Použitie hĺbkomerov (aktívne, pasívne)
+- Špeciálne usporiadanie zdroja svetla a snímača
+- Kombinácia obrazov z rôznych uhlov (CT)
+
+2. PASÍVNA STEREOVÍZIA S PARALELNÝMI KAMERAMI
+
+A) Princíp:
+- Využíva dve kamery s paralelnými optickými osami
+- Rozdiel v pozícii objektu na snímkach z dvoch kamier (disparita)
+- Čím je objekt bližšie, tým väčšia disparita
+
+B) Block Matching algoritmus:
+- Rozdelenie obrazu na bloky
+- Hľadanie zodpovedajúcich blokov v druhom obraze
+- Výpočet disparity pre každý blok
+
+C) Metódy určovania podobnosti blokov:
+- Sum of Absolute Differences (SAD)
+- Sum of Squared Differences (SSD)
+- Normalized Cross-Correlation (NCC)
+- Census transform
+- Rank transform
+
+D) Vzťah disparity a vzdialenosti:
+- Z = (f × B) / d
+  kde: Z - vzdialenosť bodu
+       f - ohnisková vzdialenosť
+       B - vzdialenosť medzi kamerami (baseline)
+       d - disparita
+
+3. EPIPOLÁRNA GEOMETRIA
+
+A) Epipolárne obmedzenie:
+- Zjednodušuje hľadanie korešpondencií
+- Bod v jednom obraze leží na epipolárnej línii v druhom obraze
+
+B) Epipolárne línie:
+- Priesečníky epipolárnej roviny s obrazovými rovinami
+- Pri paralelných kamerách sú horizontálne
+- Redukujú 2D problém hľadania na 1D
+
+4. PROBLÉMY PRI HĽADANÍ STEREO-KOREŠPONDENCIE
+
+A) Základné problémy:
+- Oklúzie (časti viditeľné len z jednej kamery)
+- Opakujúce sa vzory
+- Homogénne oblasti
+- Perspektívne skreslenie
+- Rozdielne osvetlenie v obrazoch
+
+5. ALTERNATÍVNE METÓDY ZÍSKANIA 3D OBRAZU
+
+A) Aktívna stereovízia:
+- Projekcia známeho vzoru (structured light)
+- Analýza deformácie vzoru na povrchu
+- Príklad: Kinect (kombinuje structured light s:
+  - depth from focus
+  - depth from stereo)
+
+B) LiDAR (Light Detection and Ranging):
+- Meranie vzdialenosti pomocou laseru
+- Analýza odrazeného svetla
+- Možnosť 2D alebo 3D skenovania
+- Využitie: autonómne vozidlá, mapovanie terénu
+
+C) ToF (Time of Flight) kamera:
+- Meranie času letu svetelného pulzu
+- Celá scéna zachytená naraz (scannerless)
+- Príklad: Intel RealSense
+- Princíp:
+  1. Vyslanie krátkeho svetelného pulzu
+  2. Meranie času návratu odrazeného svetla
+  3. Výpočet vzdialenosti na základe oneskorenia
+
+PRAKTICKÉ ASPEKTY:
+- Kalibrácia kamier
+- Spracovanie šumu
+- Výpočtová náročnosť
+- Presnosť merania
+- Vplyv okolitého osvetlenia
+
+Dôležité pre skúšku:
+1. Pochopiť princíp výpočtu disparity
+2. Vedieť vysvetliť epipolárne obmedzenie
+3. Poznať problémy stereo-korešpondencie
+4. Rozumieť rozdielom medzi aktívnymi a pasívnymi metódami
+5. Vedieť vysvetliť princípy rôznych 3D zobrazovacích metód
+
+16 OTAZKA Textúry, charakteristika a rozdelenie, škálová závislosť, textúrny element, textúrny gradient. Štruktúrny, fourierovský a štatistický prístup ku analýze textúr, v čom spočívajú. Lawsove textúrne masky. Výpočet kookurenčnej matice, kritériá odvodené z kookurenčnej matice a ich použitie na klasifikáciu textúr, príklad klasifikácie textúr s využitím zhlukovania.  
+
+Let me help explain textures and their analysis based on the provided lecture materials. I'll break this down systematically:
+
+1. Texture Characteristics and Definition:
+- Texture refers to the surface characteristics defined by lay, surface roughness, and waviness
+- In image processing, texture provides information about the spatial arrangement of colors or intensities in an image
+- Texture gradient is an important concept where texture appears finer as distance increases (like looking at grass from different distances)
+
+2. Main Approaches to Texture Analysis:
+
+A. Structural Approach:
+- Views texture as a set of primitive texels (texture elements) in regular or repeated relationships
+- Focuses on identifying basic texture patterns and their arrangements
+
+B. Fourier Approach:
+- Analyzes local Fourier transforms of the image
+- Provides information about:
+  - Spatial frequencies contributions
+  - Dominant orientations in the texture
+- Uses power spectrum analysis with:
+  - Ring filters for frequency band contributions
+  - Wedge filters for edge orientation information
+
+C. Statistical Approach:
+- Characterizes texture using statistical measures from grayscale intensities
+- Key method: Co-occurrence Matrices
+  - Process:
+    1. Separate intensity into discrete levels
+    2. Choose displacement vector
+    3. Count pixel pairs with specific gray levels
+    4. Normalize the matrix
+  - Six important characteristics can be derived from these matrices (though specific characteristics aren't listed in the document)
+
+3. Practical Applications:
+
+A. Texture Segmentation:
+- Uses texture characteristics to detect regions and contours
+- Can employ clustering techniques for classification
+- Example shown using graycomatrix function for analyzing horizontal pixel relationships
+
+4. Advanced Concepts:
+
+- Texture Gradient: Used for surface orientation estimation
+- Scale Dependency: Texture appearance changes with viewing distance
+- Edge Density and Direction: Used as initial steps in texture analysis
+  - Counts edge pixels in fixed regions
+  - Analyzes edge directions for texture characterization
+
+The document mentions classification using clustering but doesn't specifically detail Laws' texture masks, though these are typically used for texture feature extraction.
+
+For texture classification using clustering, the document shows:
+1. Feature selection from texture characteristics
+2. Manual parameter setting
+3. Cluster center determination
+4. Winner-takes-all clustering approach
+
+Would you like me to elaborate on any of these aspects or focus on a specific part of texture analysis?
+
+17 OTAZKA Vysvetlite pojmy ohnisková vzdialenosť objektívu, clonové číslo, rýchlosť uzávierky, hĺbka ostrosti. Ako vplýva na hĺbku ostrosti nastavenie clony a ohnisková vzdialenosť objektívu? Aký vplyv má na obraz použitie objektívov s rôznou ohniskovou vzdialenosťou. Čo predstavuje správna expozícia snímky, čo nás pri správnej expozícii obmedzuje? 
+
+Na základe prednášky "Basics of Photography" a otázky, ktorá pokrýva základné pojmy a ich vzťah k fotografii, ponúkam podrobné vysvetlenie:
+
+---
+
+### **1. Ohnisková vzdialenosť objektívu**
+Ohnisková vzdialenosť je miera schopnosti optického systému sústreďovať (konvergovať) alebo rozptyľovať (divergovať) svetlo. Vyjadruje sa v milimetroch (mm) a určuje, aký uhol záberu (zorné pole) objektív zachytáva. 
+- **Kratšia ohnisková vzdialenosť (širokouhlý objektív)**: Väčší uhol záberu, lepšia hĺbka ostrosti, vhodný na krajiny alebo architektúru. 
+- **Dlhšia ohnisková vzdialenosť (teleobjektív)**: Užší uhol záberu, zväčšenie vzdialených objektov, plytká hĺbka ostrosti, vhodný na šport alebo portréty.
+
+---
+
+### **2. Clonové číslo**
+Clonové číslo (f/číslo) predstavuje pomer ohniskovej vzdialenosti k priemeru vstupnej pupily (clony). 
+- **Nižšie f/číslo** (väčší otvor): Viac svetla, plytšia hĺbka ostrosti, použiteľné pri slabom osvetlení.
+- **Vyššie f/číslo** (menší otvor): Menej svetla, väčšia hĺbka ostrosti, vhodné na krajiny alebo makrofotografiu.
+
+---
+
+### **3. Rýchlosť uzávierky**
+Rýchlosť uzávierky určuje, ako dlho zostane svetlo dopadať na senzor alebo film. 
+- **Krátka rýchlosť (napr. 1/1000 s)**: Zachytáva rýchly pohyb, minimalizuje rozmazanie.
+- **Dlhá rýchlosť (napr. 1/10 s)**: Zachytáva pohyb vo forme rozmazania, vhodná na kreatívne efekty (napr. rozmazanie vody).
+
+---
+
+### **4. Hĺbka ostrosti (DOF)**
+Hĺbka ostrosti je rozsah vzdialeností, kde sú objekty v zábere ostré. 
+- **Faktory ovplyvňujúce hĺbku ostrosti**:
+  - **Clonové číslo**: Väčšie clonové číslo (menšia clona) zvyšuje hĺbku ostrosti.
+  - **Ohnisková vzdialenosť**: Dlhšia ohnisková vzdialenosť znižuje hĺbku ostrosti.
+  - **Vzdialenosť od objektu**: Čím bližšie je objekt, tým je hĺbka ostrosti menšia.
+
+---
+
+### **5. Vplyv objektívov s rôznou ohniskovou vzdialenosťou na obraz**
+- **Širokouhlé objektívy**: Zvýrazňujú vzdialenosti medzi objektmi, poskytujú väčšiu hĺbku ostrosti, vhodné na krajiny alebo interiéry.
+- **Teleobjektívy**: Komprimujú vzdialenosti, vytvárajú ilúziu bližšieho vzťahu medzi objektmi, vhodné na portréty alebo detailné snímky.
+
+---
+
+### **6. Správna expozícia snímky**
+Správna expozícia znamená, že snímka obsahuje dostatok detailov v tieňoch aj vo svetlých častiach bez straty informácií. Dosahuje sa kombináciou:
+- **Clonového čísla**, 
+- **Rýchlosti uzávierky**, 
+- **ISO** (citlivosť senzoru na svetlo).
+
+**Obmedzenia pri expozícii**:
+- **Clona**: Obmedzená vlastnosťami objektívu (maximálne a minimálne f/číslo).
+- **Uzávierka**: Pri dlhých časoch je potrebný statív, aby sa predišlo rozmazaniu.
+- **ISO**: Vyššie ISO pridáva šum.
+
+---
+
+### **Záver**
+Fotografické techniky, ako práca s ohniskovou vzdialenosťou, clonovým číslom a rýchlosťou uzávierky, zásadne ovplyvňujú vzhľad snímky. Hlbšie pochopenie týchto faktorov je kľúčom k vytváraniu kreatívnych a technicky správnych fotografií.
+
+18 OTAZKA Čo ovplyvňuje ISO nastavenie, aký má vplyv na šum v obraze? Čo to je dynamický rozsah senzoru, ako sa líši od ľudského oka. Čo je to HDR composite. Čo to je focus stacking? Ako možno redukovať šum pri fotografovaní statických objektov? Čo ovplyvňuje množstvo detailov zachytiteľných digitálnou kamerou? (acutance vs. resolution) Čo je to chromatická aberácia a prečo vzniká?
+
+Na základe otázky poskytujem detailné vysvetlenie k jednotlivým bodom:
+
+---
+
+### **1. ISO nastavenie a jeho vplyv na šum**
+- **ISO** (International Standards Organization) určuje citlivosť senzora na svetlo. 
+  - **Nižšie ISO (napr. 100–200)**: Menšia citlivosť, menej šumu, vhodné pri dobrom osvetlení.
+  - **Vyššie ISO (napr. 1600 a viac)**: Väčšia citlivosť, viac šumu, vhodné pri slabom osvetlení.
+- **Šum** vzniká, keď sa zosilňuje signál zo senzora, pričom sa zosilňujú aj nežiadúce elektronické poruchy (noise).
+
+---
+
+### **2. Dynamický rozsah senzoru a jeho rozdiel od ľudského oka**
+- **Dynamický rozsah senzoru**: Rozsah medzi najtmavším a najsvetlejším bodom, ktoré senzor dokáže zachytiť bez straty detailov.
+  - **Bežný rozsah senzoru**: ~10–15 expozičných krokov (stops).
+  - **Ľudské oko**: Má širší dynamický rozsah (~20 stops) a dokáže sa dynamicky prispôsobiť rôznym úrovniam jasu, čo fotoaparáty nedokážu bez dodatočných techník (napr. HDR).
+
+---
+
+### **3. HDR composite**
+- **HDR (High Dynamic Range) composite**: Technika spájania viacerých snímok s rôznymi expozíciami (napr. podexponovaná, správne exponovaná, preexponovaná). 
+  - Výsledkom je obraz s väčším dynamickým rozsahom, kde sú zachované detaily v tieňoch aj svetlých oblastiach.
+  - Používa sa na scény s vysokým kontrastom, ako napríklad pri fotografovaní krajiny za jasného slnečného dňa.
+
+---
+
+### **4. Focus stacking**
+- **Focus stacking**: Digitálna technika kombinujúca viac snímok s rôznymi zaostrenými rovinami (hlboká ostrosť každého záberu na inú časť scény).
+  - Výsledkom je obraz s väčšou hĺbkou ostrosti než akýkoľvek jednotlivý zdrojový obrázok.
+  - Používa sa pri makrofotografii alebo pri fotografovaní produktov, kde je dôležitá ostrá detailnosť v celom zábere.
+
+---
+
+### **5. Redukcia šumu pri fotografovaní statických objektov**
+- **Redukcia šumu**:
+  - Použitie **nižšieho ISO** (napr. ISO 100–200).
+  - **Dlhšie expozičné časy** s použitím statívu.
+  - Použitie techniky **image stacking**: Viaceré snímky sú spriemerované, čo redukuje náhodný šum.
+  - **Post-procesing**: Softvérové nástroje ako Adobe Lightroom na redukciu šumu.
+
+---
+
+### **6. Množstvo detailov zachytiteľných kamerou (acutance vs. resolution)**
+- **Resolution (rozlíšenie)**: Počet zachytených pixelov, teda schopnosť odlíšiť blízko umiestnené detaily. Vyššie rozlíšenie znamená viac pixelov a jemnejšie detaily.
+- **Acutance (ostrosť)**: Subjektívne vnímanie ostrosti obrazu, ovplyvnené rýchlosťou prechodu medzi svetlom a tieňom. Väčší kontrast hrán môže zvýšiť vnímanú ostrosť, aj keď rozlíšenie ostáva rovnaké.
+
+---
+
+### **7. Chromatická aberácia**
+- **Definícia**: Optická chyba objektívu spôsobená tým, že rôzne vlnové dĺžky svetla (farby) sa lámu pod odlišnými uhlami.
+- **Prečo vzniká**: Svetlo prechádzajúce cez šošovku sa rozkladá na jednotlivé farby (podobne ako pri prizme). Tieto farby sa nezhromažďujú do jedného bodu, čo vedie k farebným okrajom (napr. purpurové alebo zelené fringing).
+- **Ako ju znížiť**:
+  - Použitie objektívov s **asférickými šošovkami** alebo špeciálnymi nízko-dispersnými materiálmi.
+  - **Clonenie**: Zníženie otvoru clony môže redukovať chromatickú aberáciu.
+  - **Post-procesing**: Softvér na úpravu fotografií (napr. Lightroom alebo Photoshop) umožňuje odstránenie chromatickej aberácie.
+
+---
+
+### **Záver**
+Pochopenie týchto faktorov a techník umožňuje fotografom efektívne ovládať kvalitu snímok, minimalizovať chyby a maximalizovať technickú i umeleckú hodnotu výsledných fotografií.
+
+
+
